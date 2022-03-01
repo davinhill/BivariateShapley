@@ -85,49 +85,72 @@ def chdir_script():
     dname = os.path.dirname(abspath)
     os.chdir(dname)
 
-def submit_slurm(python_script, job_file, conda_env, gpu=False, mem=16, job_name = 'script'):
+def submit_slurm(python_script, job_file, conda_env='a100', partition='gpu',mem=32, time_hrs = -1, n_gpu = 1, exclude_nodes = None, job_name = 'script'):
+    '''
+    submit batch job to slurm
+
+    args:
+        exclude_nodes: list of specific nodes to exclude
+    '''
     dname = os.path.dirname(python_script)
     job_out = os.path.join(dname, 'job_out')
     make_dir(job_out)  # create job_out folder
 
-    if gpu:
-        with open(job_file, 'w') as fh:
-            fh.writelines("#!/bin/bash\n")
-            fh.writelines("\n")
-            fh.writelines("#SBATCH --job-name=%s\n" % (job_name))
-            fh.writelines("#SBATCH --nodes=1\n")
-            fh.writelines("#SBATCH --tasks-per-node=1\n")
-            fh.writelines("#SBATCH --cpus-per-task=1\n")
-            fh.writelines("#SBATCH --mem=%sGb \n" % str(mem))
-            fh.writelines("#SBATCH --partition=gpu\n")
-            fh.writelines("#SBATCH --time=8:00:00\n")
-            fh.writelines("#SBATCH --output=" + job_out + "/%j.out\n")
-            fh.writelines("#SBATCH --error=" + job_out + "/%j.err\n")
-            fh.writelines("#SBATCH --gres=gpu:v100-sxm2:1\n")
-            fh.writelines("\n")
-            fh.writelines("module load anaconda3/3.7\n")
-            fh.writelines("source activate %s\n" % conda_env)
-            fh.writelines("srun python -u %s" % python_script)
-        os.system("sbatch %s" %job_file)
+    if partition not in ['gpu', 'short', 'ai-jumpstart']:
+        raise ValueError('invalid partition specified')
 
-    else:
-        with open(job_file, 'w') as fh:
-            fh.writelines("#!/bin/bash\n")
-            fh.writelines("\n")
-            fh.writelines("#SBATCH --job-name=script\n")
-            fh.writelines("#SBATCH --nodes=1\n")
-            fh.writelines("#SBATCH --tasks-per-node=1\n")
-            fh.writelines("#SBATCH --cpus-per-task=1\n")
-            fh.writelines("#SBATCH --mem=%sGb \n" % str(mem))
-            fh.writelines("#SBATCH --partition=short\n")
-            fh.writelines("#SBATCH --time=24:00:00\n")
-            fh.writelines("#SBATCH --output=" + job_out + "/%j.out\n")
-            fh.writelines("#SBATCH --error=" + job_out + "/%j.err\n")
-            fh.writelines("\n")
-            fh.writelines("module load anaconda3/3.7\n")
-            fh.writelines("source activate %s\n" % conda_env)
-            fh.writelines("srun python -u %s" % python_script)
-        os.system("sbatch %s" %job_file)
+    # default time limits
+    time_default = {
+        'gpu': 8,
+        'short':24,
+        'ai-jumpstart':24
+    }
+    # max time limits
+    time_max = {
+        'gpu': 8,
+        'short':24,
+        'ai-jumpstart':720
+    }
+    if time_hrs == -1:
+        # set to default time limit
+        time_hrs = time_default[partition]
+    elif time_hrs > time_max[partition]:
+        # set to maximum time limit if exceeded
+        time_hrs = time_max[partition]
+        warnings.warn('time limit set to maximum for %s partiton: %s hours' % (partition, str(time_hrs)))
+    elif time_hrs < 0:
+        raise ValueError('invalid (negative) time specified')
+
+    with open(job_file, 'w') as fh:
+        fh.writelines("#!/bin/bash\n")
+        fh.writelines("\n")
+        fh.writelines("#SBATCH --job-name=%s\n" % (job_name))
+        fh.writelines("#SBATCH --nodes=1\n")
+        fh.writelines("#SBATCH --tasks-per-node=1\n")
+        fh.writelines("#SBATCH --cpus-per-task=1\n")
+        fh.writelines("#SBATCH --mem=%sGb \n" % str(mem))
+        fh.writelines("#SBATCH --output=" + job_out + "/%j.out\n")
+        fh.writelines("#SBATCH --error=" + job_out + "/%j.err\n")
+        fh.writelines("#SBATCH --partition=%s\n" % (partition))
+        fh.writelines("#SBATCH --time=%s:00:00\n" % (str(time_hrs)))
+
+        # exclude specific nodes
+        if exclude_nodes is not None:
+            exclude_str = ','.join(exclude_nodes)
+            fh.writelines("#SBATCH --exclude=%s\n" % (exclude_str))
+
+        # specify gpu
+        if partition == 'gpu':
+            fh.writelines("#SBATCH --gres=gpu:v100-sxm2:1\n")
+        elif partition == 'ai-jumpstart':
+            fh.writelines("#SBATCH --gres=gpu:a100:%s\n" % (str(n_gpu)))
+
+        fh.writelines("\n")
+        fh.writelines("module load anaconda3/3.7\n")
+        fh.writelines("source activate %s\n" % conda_env)
+        fh.writelines("python -u %s" % python_script)
+    os.system("sbatch %s" %job_file)
+
 
 
 
@@ -187,8 +210,52 @@ def reshape_uvw(matrix):
     
     return np.asarray(output_matrix)
 
+def calc_PR_scores(g_adj, personalize = False, shapley_values = None, dmp = 0.85, abs_method = 'softplus'):
 
-def plot_graph(A, node_labels, directed = True, save_path = None):
+    g_adj+= 1e-70  # ensure every node is connected
+
+    if abs_method == 'none':
+        g_adj = g_adj
+    elif abs_method == 'sigmoid':
+        g_adj = sigmoid(g_adj)
+    elif abs_method == 'softplus':
+        g_adj = softplus(g_adj)
+    elif abs_method == 'relu':
+        g_adj = relu(g_adj)
+    elif abs_method == 'abs':
+        g_adj = np.abs(g_adj)
+
+    # sort pagerank / shapley values
+    if personalize:
+
+        # ensure at least one positive personalization weight
+        if (shapley_values > 0).sum() == 0:
+            shapley_values_ = shapley_values - shapley_values.max() + 1e-70
+        else:
+            shapley_values_ = shapley_values
+
+        node_list, score_list = Phi_PageRank(g_adj, dmp = dmp, shapley_values =shapley_values_)
+    else:
+        node_list, score_list = Phi_PageRank(g_adj, dmp = dmp)
+
+    return score_list[0]
+
+def rename_nodes(G, node_labels):
+    '''
+    apply node labels to networkx graph
+
+    args:
+        G: NetworkX graph object
+        node_labels: list of node labels
+    
+    return:
+        graph
+    '''
+    node_mapping = dict(zip(np.arange(len(node_labels)).tolist(), node_labels))
+    return nx.relabel_nodes(G, node_mapping)
+
+
+def plot_graph(A, node_labels, directed = True, save_path = None, label_edge_weights = False, color_edges = False, edge_width = 4):
     '''
     plot an adjacency matrix
 
@@ -215,16 +282,17 @@ def plot_graph(A, node_labels, directed = True, save_path = None):
     G = nx.relabel.relabel_nodes(G, mapping)
 
     # apply edge labels
-    nx.set_edge_attributes(G, {(e[0], e[1]): {'label': e[2]['weight']} for e in G.edges(data=True)})
+    if label_edge_weights:
+        nx.set_edge_attributes(G, {(e[0], e[1]): {'label': e[2]['weight']} for e in G.edges(data=True)})
 
     # modify edge width
-    if directed:
-        width = 4
-    else:
-        width = 2
+    width = edge_width
     nx.set_edge_attributes(G, {(e[0], e[1]): {'penwidth': scale_edge_weights(e[2]['weight'], A.max(), width)} for e in G.edges(data=True)})
-    nx.set_edge_attributes(G, {(e[0], e[1]): {'color': 'black'} for e in G.edges(data=True) if e[2]['weight']>0})
-    nx.set_edge_attributes(G, {(e[0], e[1]): {'color': 'red'} for e in G.edges(data=True) if e[2]['weight']<0})
+    
+    # color negative edges red
+    if color_edges:
+        nx.set_edge_attributes(G, {(e[0], e[1]): {'color': 'black'} for e in G.edges(data=True) if e[2]['weight']>0})
+        nx.set_edge_attributes(G, {(e[0], e[1]): {'color': 'red'} for e in G.edges(data=True) if e[2]['weight']<0})
 
 
     # draw graph
@@ -436,24 +504,25 @@ def top_R(x, shapley_values, phi_plus, zero_threshold = 0.01, asym_threshold = 0
     return x_MR, x_AR, x_AR_flip, db, MR_list, AR_list
 
 
-'''
 #========================================================
 # transformer functions
 from transformers import BertTokenizerFast
 
-def encode(batch, max_length = 400, tokenizer = BertTokenizerFast.from_pretrained('bert-base-cased')):
-    return tokenizer(batch, padding="longest", truncation=True, max_length=max_length)['input_ids']
+def encode(batch, max_length = 400, tokenizer = BertTokenizerFast.from_pretrained('bert-base-cased'), add_special_tokens = False):
+    return tokenizer(batch, padding="longest", truncation=True, max_length=max_length, add_special_tokens = add_special_tokens)['input_ids']
 
-def decode(batch, single = False):
-    output = []
+def decode(batch, single = False, tokenizer = BertTokenizerFast.from_pretrained('bert-base-cased'), skip_special_tokens = False):
     if single:
-        output.append(tokenizer.convert_tokens_to_string(tokenizer.batch_decode(batch)))
+        output = []
+        output.append(tokenizer.convert_tokens_to_string(tokenizer.batch_decode(batch, skip_special_tokens)))
     else:
-        for i in batch:
-            output.append(tokenizer.convert_tokens_to_string(tokenizer.batch_decode(i)))
+        output = tokenizer.batch_decode(batch, skip_special_tokens)
     
     return output
-'''
+
+def decode_tkn(batch, tokenizer = BertTokenizerFast.from_pretrained('bert-base-cased'), skip_special_tokens = False):
+    output = tokenizer.batch_decode(batch.reshape(-1), skip_special_tokens)
+    return output
 
 #========================================================
 # nlp functions
@@ -737,6 +806,8 @@ def find_AR(phi_redundant, calc_freq = False):
     c_node_sink = []
     for idx, subgraph in enumerate(S):
         adjacency = nx.adjacency_matrix(subgraph)
+        if adjacency.todense().shape == (1,1):
+            continue
         scores = pagerank.fit_transform(adjacency)
 
         #list_nodes.append(np.array(list(xx[idx])))
