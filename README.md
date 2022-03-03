@@ -8,24 +8,29 @@ Implementation of the methods and experiments described in our spotlight [paper]
 
 Aria Masoomi, Davin Hill, Zhonghui Xu, Craig P. Hersh, Edwin K. Silverman, Peter J. Castaldi, Stratis Ioannidis, and Jennifer Dy. “Explanations of Black-Box Models Based on Directional Feature Interactions.”
 
+<br />
 
 ![Image](https://github.com/davinhill/BivariateShapley/raw/main/Figures/fig1.jpg)
 
 
 ## Examples
+We have two example implementations in the Examples folder. Both of these notebooks can be run in Google Colab.
+* [Sentiment Analysis](https://github.com/davinhill/BivariateShapley/blob/main/Examples/example_sentimentanalysis.ipynb)
+* Census Dataset Classification
 
 ## Bivariate Shapley Calculation
 The Bivariate Shapley calculations are contained within the BivariateShapley folder.
 
-Shapley Sampling implementation: shapley_sampling.py
+**BivShap-S** (Shapley Sampling-based implementation): [shapley_sampling.py](https://github.com/davinhill/BivariateShapley/blob/main/BivariateShapley/shapley_sampling.py)
 
-kernelSHAP implementation: shapley_kernel.py
+**BivShap-K** (KernelSHAP-based implementation): [shapley_kernel.py](https://github.com/davinhill/BivariateShapley/blob/main/BivariateShapley/shapley_kernel.py)
 
 
 
 
 # Experiments
 
+Below we detail the code used to evaluate Bivariate Shapley, as described in the Experiments section of the paper.
 
 
 ## Datasets and Black-Box Models
