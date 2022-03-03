@@ -1,10 +1,32 @@
-# BivariateShapley
+# Introduction
 
-*Will be updated soon for ICLR 2022*
+*Under Construction: will be updated soon for ICLR 2022*
 
 
-Repository for Experiment Code related to the paper **Explanations of Black-Box Models based on Directional Feature Interactions**
+Implementation of the methods and experiments described in our spotlight [paper](https://openreview.net/forum?id=45Mr7LeKR9) at ICLR 2022
 
+Aria Masoomi, Davin Hill, Zhonghui Xu, Craig P. Hersh, Edwin K. Silverman, Peter J. Castaldi, Stratis Ioannidis, and Jennifer Dy. “Explanations of Black-Box Models Based on Directional Feature Interactions.”
+
+## Citation
+```
+@inproceedings{masoomi2022explanations,
+  author    = {Aria Masoomi and
+               Davin Hill and
+               Zhonghui Xu and
+               Craig P. Hersh and
+               Edwin K. Silverman and
+               Peter J. Castaldi and
+               Stratis Ioannidis and
+               Jennifer Dy},
+  title     = {Explanations of Black-Box Models based on Directional Feature Interactions},
+  booktitle = {10th International Conference on Learning Representations, {ICLR} 2022},
+  publisher = {OpenReview.net},
+  year      = {2022},
+  url       = {https://openreview.net/forum?id=nIAxjsniDzg},
+}
+```
+
+## Examples
 
 ## Bivariate Shapley Calculation
 The Bivariate Shapley calculations are contained within the BivariateShapley folder.
@@ -14,8 +36,14 @@ Shapley Sampling implementation: shapley_sampling.py
 kernelSHAP implementation: shapley_kernel.py
 
 
+
+
+# Experiments
+
+
+
 ## Datasets and Black-Box Models
-The black-box models evaluted in the experiments section are trained using the code in the BlackBox_Models folder. Datasets are not included in the repository due to file size, however most datasets are publically available (with the lone exception of COPDGene) with sources listed in the paper supplement. Please let us know if you have any issues with locating the datasets.
+The black-box models evaluted in the experiments section are trained using the code in the BlackBox_Models folder. Datasets are not included in the repository due to file size, however most datasets are publically available (with the exception of COPDGene) with sources listed in the paper supplement. Please let us know if you have any issues with locating the datasets.
 
 ## Experiments
 Since calculating the G matrix can be time consuming for the number of samples we require, the tests are conducted in the following steps:
@@ -38,7 +66,6 @@ Since calculating the G matrix can be time consuming for the number of samples w
 > * MNIST_196: MNIST with 196 superpixels
 > * CIFAR10_255: CIFAR10 with 255 superpixels
 > * IMDB
-> * COPD
 > * Census
 > * Divorce
 > * Drug
@@ -46,16 +73,6 @@ Since calculating the G matrix can be time consuming for the number of samples w
 > **--method** (the explanation method to evaluate)
 > * BivariateShapley: Bivariate Shapley with Shapling Sampling implementation
 > * BivariateShapley_kernel: Bivariate Shapley with kernelSHAP implementation
-> * ShapleySampling: Shapley Sampling values (univariate)
-> * kernelshap: KernelSHAP (univariate)
-> * excess: Shapley Excess (bivariate)
-> * shapleytaylor: Shapley-Taylor Index (bivariate)
-> * intKS: Interaction Shapley (bivariate)
-
+>
 > Example: python test_list.py --eval_test ranking --eval_metric AUC --dataset Drug --method BivariateShapley_kernel
-
-
-## Comparisons
-Comparison model implementations are located in the ./Tests/attribution_calculation folder. Each iterate_* file contains the implementation for that particular method.
-
 
