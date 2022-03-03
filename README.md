@@ -1,12 +1,15 @@
-# Introduction
-
 *Under Construction: will be updated soon for ICLR 2022*
 
+
+
+# Introduction
 
 Implementation of the methods and experiments described in our spotlight [paper](https://openreview.net/forum?id=45Mr7LeKR9) at ICLR 2022
 
 Aria Masoomi, Davin Hill, Zhonghui Xu, Craig P. Hersh, Edwin K. Silverman, Peter J. Castaldi, Stratis Ioannidis, and Jennifer Dy. “Explanations of Black-Box Models Based on Directional Feature Interactions.”
 
+
+![Image](https://github.com/davinhill/BivariateShapley/raw/main/Figures/fig1.jpg)
 ## Citation
 ```
 @inproceedings{masoomi2022explanations,
