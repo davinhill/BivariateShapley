@@ -2,32 +2,15 @@
 
 
 
-# Introduction
+# Bivariate Shapley
 
-Implementation of the methods and experiments described in our spotlight [paper](https://openreview.net/forum?id=45Mr7LeKR9) at ICLR 2022
+Implementation of the methods and experiments described in our spotlight [paper](https://openreview.net/forum?id=45Mr7LeKR9) at ICLR 2022:
 
 Aria Masoomi, Davin Hill, Zhonghui Xu, Craig P. Hersh, Edwin K. Silverman, Peter J. Castaldi, Stratis Ioannidis, and Jennifer Dy. “Explanations of Black-Box Models Based on Directional Feature Interactions.”
 
 
 ![Image](https://github.com/davinhill/BivariateShapley/raw/main/Figures/fig1.jpg)
-## Citation
-```
-@inproceedings{masoomi2022explanations,
-  author    = {Aria Masoomi and
-               Davin Hill and
-               Zhonghui Xu and
-               Craig P. Hersh and
-               Edwin K. Silverman and
-               Peter J. Castaldi and
-               Stratis Ioannidis and
-               Jennifer Dy},
-  title     = {Explanations of Black-Box Models based on Directional Feature Interactions},
-  booktitle = {10th International Conference on Learning Representations, {ICLR} 2022},
-  publisher = {OpenReview.net},
-  year      = {2022},
-  url       = {https://openreview.net/forum?id=nIAxjsniDzg},
-}
-```
+
 
 ## Examples
 
@@ -48,7 +31,7 @@ kernelSHAP implementation: shapley_kernel.py
 ## Datasets and Black-Box Models
 The black-box models evaluted in the experiments section are trained using the code in the BlackBox_Models folder. Datasets are not included in the repository due to file size, however most datasets are publically available (with the exception of COPDGene) with sources listed in the paper supplement. Please let us know if you have any issues with locating the datasets.
 
-## Experiments
+## Evaluation
 Since calculating the G matrix can be time consuming for the number of samples we require, the tests are conducted in the following steps:
 1. **Calculate G Matrices and/or univariate feature attribution values for all samples.** These values are calculated using the iterate_*.py scripts in the ./Tests/attribution_calculation folder, separated explanation method. Each iterate_*.py script iterates over all data samples specified and saves all explanations as lists in a dictionary, where each element of the list represents the explanation for a single sample. These iterate_*.py scripts were implemented in Slurm as separate jobs, in order to parallelize the calculations. The Slurm execution files are included for reference (execute_scripts.py), though these will likely need to be modified when implemented on a different system. Running the iterate_*.py script will save the associated dictionary in the ./Files/results_attribution folder.
 
@@ -79,3 +62,22 @@ Since calculating the G matrix can be time consuming for the number of samples w
 >
 > Example: python test_list.py --eval_test ranking --eval_metric AUC --dataset Drug --method BivariateShapley_kernel
 
+
+# Citation
+```
+@inproceedings{masoomi2022explanations,
+  author    = {Aria Masoomi and
+               Davin Hill and
+               Zhonghui Xu and
+               Craig P. Hersh and
+               Edwin K. Silverman and
+               Peter J. Castaldi and
+               Stratis Ioannidis and
+               Jennifer Dy},
+  title     = {Explanations of Black-Box Models based on Directional Feature Interactions},
+  booktitle = {10th International Conference on Learning Representations, {ICLR} 2022},
+  publisher = {OpenReview.net},
+  year      = {2022},
+  url       = {https://openreview.net/forum?id=nIAxjsniDzg},
+}
+```
