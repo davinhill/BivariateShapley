@@ -342,7 +342,7 @@ def matrix_expansion(unary, phi_plus, zero_threshold):
 
     return phi_minus, phi_redundant, phi_complement
 
-def get_phi_redundant(phi_plus, zero_threshold, transpose = True):
+def get_phi_redundant(phi_plus, zero_threshold, transpose = False):
     '''
     return phi_redundant matrix (with redundancy as sinks)
 
@@ -354,6 +354,13 @@ def get_phi_redundant(phi_plus, zero_threshold, transpose = True):
         phi_redundant = (np.abs(phi_plus) <= zero_threshold)*1
     np.fill_diagonal(phi_redundant, 0)
     return phi_redundant
+
+def g2h(g_matrix, zero_threshold):
+    '''
+    convert G-graph adjacency matrix to the H-graph adjacency matrix
+    '''
+
+    return get_phi_redundant(phi_plus = g_matrix, zero_threshold = zero_threshold)
 
 def get_phi_ratio(shapley_values, phi_plus, zero_threshold):
     '''
