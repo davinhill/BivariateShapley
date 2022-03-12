@@ -11,6 +11,7 @@ from utils_shapley import *
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+import torch
 
 
 def run_test(test, dataset, baseline, eval_test, matrix_input = False, eval_metric = 'PostHoc_accy', **kwargs):
@@ -31,6 +32,10 @@ def run_test(test, dataset, baseline, eval_test, matrix_input = False, eval_metr
     df_tmp = []
     n_samples = test.n_samples
     baseline_accy = test.calc_baseline_accy()
+    if torch.cuda.is_available():
+        device_name = torch.cuda.get_device_name(0)
+    else:
+        device_name = 'cpu'
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     if eval_test == 'ranking':
@@ -57,7 +62,7 @@ def run_test(test, dataset, baseline, eval_test, matrix_input = False, eval_metr
             baseline_accy,
             1.0,
             accy[i],
-            accy_PH[i]
+            accy_PH[i],
             ]
             tmp.append(tmp_)
 
@@ -124,6 +129,8 @@ def run_test(test, dataset, baseline, eval_test, matrix_input = False, eval_metr
         H = 'redundant'
         z = np.arange(0,10,0.2)
         z = 0.0001*(np.exp(z)-1)
+        z = z.tolist()
+        z = z+[0.00001, 0.00002]
         for gamma in z:
             accy, accy_PH = test.calc_AR(zero_threshold = gamma, H_matrix = H, scale_MR = True)
             AR1, AR2, AR3, AR4, ARMR = accy
@@ -187,9 +194,9 @@ def run_test(test, dataset, baseline, eval_test, matrix_input = False, eval_metr
     elif eval_test == 'centrality':
         for abs_method in ['relu', 'sigmoid', 'softplus', 'abs', 'none']:
             for degree in [1, 3, 5, 7, 9, 11]:
-                #Note that Transpose should be false
+                #Note that Transpose should be True
                 pct_mask = np.arange(0,1.0,0.04).tolist()
-                accy_shapley, accy_shapley_PH = test.calc_Centralize(pct_mask = pct_mask, normalize = False, abs_method = abs_method, transpose = False, degree = degree) 
+                accy_shapley, accy_shapley_PH = test.calc_Centralize(pct_mask = pct_mask, normalize = False, abs_method = abs_method, transpose = True, degree = degree) 
 
                 for i, pct in enumerate(pct_mask):
                     tmp_ = [
@@ -265,13 +272,14 @@ class Redundancy_Test():
     
     
     '''
-    def __init__(self, folder_path, value_function, verbose = True, rnn = False, mask_baseline = 0):
+    def __init__(self, folder_path, value_function, verbose = True, rnn = False, mask_baseline = 0, **kwargs):
         
         self.value_function = value_function
         self.rnn = rnn
         self.metrics = {}
         self.verbose = verbose
         self.mask_baseline = mask_baseline
+        self.AUC_baseline = kwargs.get('AUC_baseline')
 
         
         # load folder contents
@@ -421,7 +429,7 @@ class Redundancy_Test():
         return accy, accy_PH
         
 
-    def calc_AR(self, zero_threshold, H_matrix = 'redundant', keep = 0.0, calc_freq = False, scale_MR = False, transpose = True):
+    def calc_AR(self, zero_threshold, H_matrix = 'redundant', keep = 0.0, calc_freq = False, scale_MR = False, transpose = False):
         '''
         
         H_matrix: 'redundant' or 'ratio'
@@ -480,7 +488,20 @@ class Redundancy_Test():
                 else:
                     phi_redundant = get_phi_ratio(shapley_values, phi_plus, zero_threshold, transpose=False)
                 
+
             AR_source, AR_sink, freq_matrix = find_AR(phi_redundant, calc_freq)
+            '''
+            if phi_redundant.sum() == 0 or phi_redundant.sum() == phi_redundant.shape[0] **2 - phi_redundant.shape[0]:
+                # if H has no connections (no redundancy) or fully connected (everything is redundant; there are no sources / sinks)
+                #AR_source, AR_sink = [[], [], []], [[], [], []]
+            else:
+                try:
+                    AR_source, AR_sink, freq_matrix = find_AR(phi_redundant, calc_freq)
+                except ValueError:
+                    import pdb; pdb.set_trace()
+                    find_AR(phi_redundant, calc_freq)
+            '''
+
             if calc_freq: self.metrics['AR_freq_matrix'].append(freq_matrix)
 
             # AR_source and AR_sink are lists
@@ -635,7 +656,7 @@ class Redundancy_Test():
 
         return [accy_AR1, accy_AR2, accy_AR3, accy_AR4, accy_ARMR], [accy_AR1_PH, accy_AR2_PH, accy_AR3_PH, accy_AR4_PH, accy_ARMR_PH]
 
-    def calc_PR_scores(self, normalize = False, dmp = 0.85, abs_method = 'softplus', transpose = True, personalize = True):
+    def calc_PR_scores(self, normalize = False, dmp = 0.85, abs_method = 'softplus', transpose = False, personalize = True):
         '''
         args:
             pct_mask: list of values between 0 and 1, representing the % of features to mask
@@ -784,11 +805,11 @@ class Redundancy_Test():
         if metric == 'PostHoc_accy':
             return self._eval_PHaccy(score_list, pct_mask)
         elif metric == 'AUC':
-            return self._eval_AUC(score_list)
+            return self._eval_AUC(score_list, **kwargs)
         else:
             raise ValueError('invalid metric specified')
 
-    def _eval_AUC(self, score_list):
+    def _eval_AUC(self, score_list, **kwargs):
         '''
         Calculates a feature ranking using PageRank on the G Matrix. Similar to calc_GRanking, but the output is AUC (insertion and deletion) introduced in Petsiuk et al
 
@@ -885,8 +906,11 @@ class Redundancy_Test():
             pred_x_shapley_d = self.value_function(x_shapley_d_)
             pred_x_shapley_i = self.value_function(x_shapley_i_)
 
-            pred_baseline = self.value_function(x_baseline[i]) # prediction for baseline value (should be the lowest possible model prediction)
-            pred_baseline = 0.5
+            if self.AUC_baseline is None:
+                pred_baseline = self.value_function(x_baseline[i]) # prediction for baseline value (should be the lowest possible model prediction)
+            else:
+                pred_baseline = self.AUC_baseline # fix issue with imbalanced models
+
             shapley_dAUC += np.maximum(pred_x_shapley_d - pred_baseline, np.zeros_like(pred_x_shapley_d)).sum()/(len(x_shapley_d[i])) 
             shapley_iAUC += np.maximum(pred_x_shapley_i - pred_baseline, np.zeros_like(pred_x_shapley_i)).sum()/(len(x_shapley_i[i])) 
             '''
@@ -900,7 +924,7 @@ class Redundancy_Test():
 
         return shapley_dAUC, shapley_iAUC
 
-    def calc_Centralize(self, pct_mask, normalize = False, abs_method = 'none', transpose = False, degree = 1):
+    def calc_Centralize(self, pct_mask, normalize = False, abs_method = 'none', transpose = True, degree = 1):
         '''
         args:
             pct_mask: list of values between 0 and 1, representing the % of features to mask
@@ -1010,7 +1034,7 @@ class Redundancy_Test():
 
         return accy_shapley_list, accy_shapley_list_PH
         
-    def calc_Density(self, zero_threshold_list, global_flag = True, transpose = True):
+    def calc_Density(self, zero_threshold_list, global_flag = True, transpose = False):
         '''
 
         '''

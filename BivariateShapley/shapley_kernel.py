@@ -239,7 +239,7 @@ class Bivariate_KernelExplainer(shap.KernelExplainer):
             phi_b = np.squeeze(phi_b, axis = 2)
         
         #np.fill_diagonal(phi_b, 0)
-        self.phi_b = phi_b
+        self.phi_b = phi_b.transpose()
         return phi
 
 
