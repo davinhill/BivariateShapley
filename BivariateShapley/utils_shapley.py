@@ -757,17 +757,18 @@ except:
 
 
 
-def find_MR(phi_redundant):
+def find_MR(h_matrix):
     '''
-    find mutually redundant groups
+    find mutually redundant groups given the H-graph adjacency matrix
 
     args:
-        phi_redundant: directed, unweighted adjacency matrix with redundancy as sinks
+        h_matrix: directed, unweighted adjacency matrix with redundancy as sinks (H-graph)
     return:
         list of np arrays, where each array is a set of indices representing a MR group
     '''
-    G = nx.from_numpy_matrix(phi_redundant , create_using=nx.DiGraph)
-    components = list(nx.strongly_connected_components(G))
+
+    H = nx.from_numpy_matrix(h_matrix , create_using=nx.DiGraph)
+    components = list(nx.strongly_connected_components(H))
     components_multi = [c for c in components if len(c)>1]
 
 
@@ -777,6 +778,17 @@ def find_MR(phi_redundant):
 
     return MR_groups
 
+def find_DR(h_matrix):
+    '''
+    identify directionally redundant features given the H-graph adjacency matrix
+
+    args:
+        h_matrix: directed, unweighted adjacency matrix with redundancy as sinks (H-graph)
+
+    return:
+        list of np arrays, where each array is a set of indices representing a DR group.
+    '''
+    return find_AR(phi_redundant = h_matrix, calc_freq = False)
 
 
 def find_AR(phi_redundant, calc_freq = False):
@@ -901,6 +913,25 @@ def find_AR(phi_redundant, calc_freq = False):
 
 
     return source_nodes, sink_nodes, freq_matrix
+
+def print_DR_clusters(DR_list, node_labels):
+    '''
+    print the source / sink node clusters appended with node labels
+
+    args:
+        DR_list: output of either the source / sink node list from find_DR(). Should be a list of np arrays.
+        node_labels: list of node labels.
+    
+    return:
+        None (prints clusters).
+    '''
+    for cluster in DR_list:
+        if type(cluster) == list:
+            if len(cluster) == 0: continue
+            print_DR_clusters(cluster, node_labels)
+        elif type(cluster) == np.ndarray:
+            labeled_cluster = np.array(node_labels)[cluster].tolist()
+            print(labeled_cluster)
 
 
 def Phi_PageRank(phi_plus, shapley_values = None, dmp = 0.85):
