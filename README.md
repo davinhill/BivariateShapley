@@ -1,7 +1,3 @@
-*Under Construction: will be updated soon for ICLR 2022*
-
-
-
 # Bivariate Shapley
 
 Implementation of the methods and experiments described in our spotlight [paper](https://openreview.net/forum?id=45Mr7LeKR9) at ICLR 2022:
@@ -15,8 +11,8 @@ Aria Masoomi, Davin Hill, Zhonghui Xu, Craig P. Hersh, Edwin K. Silverman, Peter
 
 ## Examples
 We have two example implementations in the Examples folder. Both of these notebooks can be run in Google Colab.
-* [Sentiment Analysis](https://github.com/davinhill/BivariateShapley/blob/main/Examples/example_sentimentanalysis.ipynb)
-* Census Dataset Classification
+* [Sentiment Analysis](https://github.com/davinhill/BivariateShapley/blob/main/Examples/example1_sentimentanalysis.ipynb)
+* Census Dataset Classification *(under construction)*
 
 ## Bivariate Shapley Calculation
 The Bivariate Shapley calculations are contained within the BivariateShapley folder.
