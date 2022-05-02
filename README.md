@@ -1,5 +1,3 @@
-*Under Construction - Will be updated for ICLR 2022*
-
 # Bivariate Shapley
 
 Implementation of the methods and experiments described in our spotlight [paper](https://openreview.net/forum?id=45Mr7LeKR9) at ICLR 2022:
