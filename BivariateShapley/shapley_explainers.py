@@ -177,7 +177,7 @@ class XGB_Explainer(Shapley_Sampling):
     Wrapper for Shapley_Sampling class
     '''
 
-    def __init__(self, model_path = './census/model_census.json', baseline = 'zero',method = 'pairwise', **kwargs):
+    def __init__(self, model_path = './census/model_census.json', pretrained_model = None, baseline = 'zero',method = 'pairwise', **kwargs):
         '''
         args:
             binary_pred: boolean, whether the pytorch classifier is binary or multiclass
@@ -193,8 +193,11 @@ class XGB_Explainer(Shapley_Sampling):
 
         # load model
         import xgboost as xgb
-        model = xgb.Booster()
-        model.load_model(model_path)
+        if pretrained_model is None:
+            model = xgb.Booster()
+            model.load_model(model_path)
+        else:
+            model = pretrained_model
         self.value_function = eval_XGB(model)
 
         # initialize shapley
