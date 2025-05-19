@@ -513,23 +513,28 @@ def top_R(x, shapley_values, phi_plus, zero_threshold = 0.01, asym_threshold = 0
 
 #========================================================
 # transformer functions
-from transformers import BertTokenizerFast
+try:
+    from transformers import BertTokenizerFast
 
-def encode(batch, max_length = 400, tokenizer = BertTokenizerFast.from_pretrained('bert-base-cased'), add_special_tokens = False):
-    return tokenizer(batch, padding="longest", truncation=True, max_length=max_length, add_special_tokens = add_special_tokens)['input_ids']
+    def encode(batch, max_length = 400, tokenizer = BertTokenizerFast.from_pretrained('bert-base-cased'), add_special_tokens = False):
+        return tokenizer(batch, padding="longest", truncation=True, max_length=max_length, add_special_tokens = add_special_tokens)['input_ids']
 
-def decode(batch, single = False, tokenizer = BertTokenizerFast.from_pretrained('bert-base-cased'), skip_special_tokens = False):
-    if single:
-        output = []
-        output.append(tokenizer.convert_tokens_to_string(tokenizer.batch_decode(batch, skip_special_tokens)))
-    else:
-        output = tokenizer.batch_decode(batch, skip_special_tokens)
-    
-    return output
+    def decode(batch, single = False, tokenizer = BertTokenizerFast.from_pretrained('bert-base-cased'), skip_special_tokens = False):
+        if single:
+            output = []
+            output.append(tokenizer.convert_tokens_to_string(tokenizer.batch_decode(batch, skip_special_tokens)))
+        else:
+            output = tokenizer.batch_decode(batch, skip_special_tokens)
+        
+        return output
 
-def decode_tkn(batch, tokenizer = BertTokenizerFast.from_pretrained('bert-base-cased'), skip_special_tokens = False):
-    output = tokenizer.batch_decode(batch.reshape(-1), skip_special_tokens)
-    return output
+    def decode_tkn(batch, tokenizer = BertTokenizerFast.from_pretrained('bert-base-cased'), skip_special_tokens = False):
+        output = tokenizer.batch_decode(batch.reshape(-1), skip_special_tokens)
+        return output
+
+except:
+    import warnings
+    warnings.warn('Problem importing Transformers Package! Transformer functions not loaded.')
 
 #========================================================
 # nlp functions

@@ -30,7 +30,7 @@ Below we detail the code used to evaluate Bivariate Shapley, as described in the
 
 
 ## Datasets and Black-Box Models
-The black-box models evaluted in the experiments section are trained using the code in the BlackBox_Models folder. Datasets are not included in the repository due to file size, however most datasets are publically available (with the exception of COPDGene) with sources listed in the paper supplement. Please let us know if you have any issues with locating the datasets.
+The black-box models evaluated in the experiments section are trained using the code in the BlackBox_Models folder. Datasets are not included in the repository due to file size, however most datasets are publically available (with the exception of COPDGene) with sources listed in the paper supplement. Please let us know if you have any issues with locating the datasets.
 
 ## Evaluation
 Since calculating the G matrix can be time consuming for the number of samples we require, the tests are conducted in the following steps:
